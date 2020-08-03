@@ -55,3 +55,7 @@ Rolling the wheel up/down will now send vertical scroll events to whatever app y
 * (Click the red button four times (--"--) in case you didn't want to scroll after all. Returns back to normal mode.)
 
 Mouse buttons work normally while scrolling, although they usually don't have much effect.
+
+# Improvements
+
+Issues & pull requests welcome. Also if you would have any (inside) information on the Logitech TrackMan Marble FX protocol or quirks please let me know!
