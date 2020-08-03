@@ -1,0 +1,13 @@
+#-*-conf-*-
+
+# build artifacts
+/.*o.cmd
+/.tmp_versions/
+/Module.symvers
+/*.ko
+/*.mod.c
+/*.o
+/modules.order
+
+# misc
+*~
