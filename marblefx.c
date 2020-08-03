@@ -36,7 +36,7 @@
 /*
  * Version Information
  */
-#define DRIVER_VERSION "v1.6.1"
+#define DRIVER_VERSION "v1.6.2"
 #define DRIVER_AUTHOR "Vojtech Pavlik <vojtech@ucw.cz> & xkr47"
 #define DRIVER_DESC "Logitech Marble TrackMan FX over USB mouse driver"
 
@@ -55,6 +55,7 @@ struct usb_mouse {
 	dma_addr_t data_dma;
 	char num_zeros;
 	char mode;
+	char modeDone;
 };
 
 static void usb_mouse_irq(struct urb *urb)
@@ -79,7 +80,8 @@ static void usb_mouse_irq(struct urb *urb)
 	if (!data[1] && !data[2] && !data[3]) {
 		mouse->num_zeros^=1;
 		if (!mouse->num_zeros) {
-			mouse->mode = !mouse->mode;
+			mouse->mode = mouse->modeDone ? 0 : (mouse->mode + 1) & 3;
+			mouse->modeDone = 0;
 			//dev_warn(&mouse->usbdev->dev, "mouse %s\n", mouse->mode ? "scroll" : "normal");
 		}
 	} else {
@@ -89,12 +91,25 @@ static void usb_mouse_irq(struct urb *urb)
 	input_report_key(dev, BTN_LEFT,   data[1+0] & 0x01);
 	input_report_key(dev, BTN_RIGHT,  data[1+0] & 0x02);
 	input_report_key(dev, BTN_MIDDLE, data[1+0] & 0x04);
-	if (!mouse->mode) {
+	switch (mouse->mode) {
+	case 0:
 		input_report_rel(dev, REL_X,     data[1+1]);
 		input_report_rel(dev, REL_Y,     data[1+2]);
-	} else {
+		break;
+	case 1:
+		input_report_rel(dev, REL_WHEEL, -data[1+2]);
+		break;
+	case 2:
+		input_report_rel(dev, REL_HWHEEL, data[1+1]);
+		break;
+	case 3:
 		input_report_rel(dev, REL_HWHEEL, data[1+1]);
 		input_report_rel(dev, REL_WHEEL, -data[1+2]);
+		break;
+	}
+	if (mouse->mode) {
+		// if you move the mouse after selecting scroll mode, we are "done" scrolling
+		mouse->modeDone |= data[1+1] || data[1+2];
 	}
 
 	input_sync(dev);
