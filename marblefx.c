@@ -33,6 +33,9 @@
 #include <linux/usb/input.h>
 #include <linux/hid.h>
 
+#define USB_VENDOR_ID_HOLTEK_ALT		0x04d9
+#define USB_DEVICE_ID_HOLTEK_KEYB_MOUSE_DONGLE	0x1400
+
 /*
  * Version Information
  */
@@ -250,8 +253,7 @@ static void usb_mouse_disconnect(struct usb_interface *intf)
 }
 
 static struct usb_device_id usb_mouse_id_table [] = {
-	{ USB_INTERFACE_INFO(USB_INTERFACE_CLASS_HID, USB_INTERFACE_SUBCLASS_BOOT,
-		USB_INTERFACE_PROTOCOL_MOUSE) },
+	{ USB_DEVICE(USB_VENDOR_ID_HOLTEK_ALT, USB_DEVICE_ID_HOLTEK_KEYB_MOUSE_DONGLE) },
 	{ }	/* Terminating entry */
 };
 
