@@ -1,7 +1,9 @@
-/*
- *  Copyright (c) 1999-2001 Vojtech Pavlik
+/* -*-linux-c-*-
+ *  Copyright (c) 1999-2001, 2017-2020 Vojtech Pavlik, Jonas Berlin
  *
- *  USB HIDBP Mouse support
+ *  USB HIDBP Mouse support for "Logitech TrackMan Marble FX" PS/2
+ *  mouse connected via "04d9:1400 Holtek Semiconductor, Inc. PS/2
+ *  keyboard + mouse controller" usb adapter
  */
 
 /*
@@ -31,17 +33,12 @@
 #include <linux/usb/input.h>
 #include <linux/hid.h>
 
-/* for apple IDs */
-#ifdef CONFIG_USB_HID_MODULE
-#include "../hid-ids.h"
-#endif
-
 /*
  * Version Information
  */
-#define DRIVER_VERSION "v1.6"
-#define DRIVER_AUTHOR "Vojtech Pavlik <vojtech@ucw.cz>"
-#define DRIVER_DESC "USB HID Boot Protocol mouse driver"
+#define DRIVER_VERSION "v1.6.1"
+#define DRIVER_AUTHOR "Vojtech Pavlik <vojtech@ucw.cz> & xkr47"
+#define DRIVER_DESC "Logitech Marble TrackMan FX over USB mouse driver"
 
 MODULE_AUTHOR(DRIVER_AUTHOR);
 MODULE_DESCRIPTION(DRIVER_DESC);
@@ -56,6 +53,8 @@ struct usb_mouse {
 
 	signed char *data;
 	dma_addr_t data_dma;
+	char num_zeros;
+	char mode;
 };
 
 static void usb_mouse_irq(struct urb *urb)
@@ -77,15 +76,26 @@ static void usb_mouse_irq(struct urb *urb)
 		goto resubmit;
 	}
 
-	input_report_key(dev, BTN_LEFT,   data[0] & 0x01);
-	input_report_key(dev, BTN_RIGHT,  data[0] & 0x02);
-	input_report_key(dev, BTN_MIDDLE, data[0] & 0x04);
-	input_report_key(dev, BTN_SIDE,   data[0] & 0x08);
-	input_report_key(dev, BTN_EXTRA,  data[0] & 0x10);
+	if (!data[1] && !data[2] && !data[3]) {
+		mouse->num_zeros^=1;
+		if (!mouse->num_zeros) {
+			mouse->mode = !mouse->mode;
+			//dev_warn(&mouse->usbdev->dev, "mouse %s\n", mouse->mode ? "scroll" : "normal");
+		}
+	} else {
+		mouse->num_zeros = 0;
+	}
 
-	input_report_rel(dev, REL_X,     data[1]);
-	input_report_rel(dev, REL_Y,     data[2]);
-	input_report_rel(dev, REL_WHEEL, data[3]);
+	input_report_key(dev, BTN_LEFT,   data[1+0] & 0x01);
+	input_report_key(dev, BTN_RIGHT,  data[1+0] & 0x02);
+	input_report_key(dev, BTN_MIDDLE, data[1+0] & 0x04);
+	if (!mouse->mode) {
+		input_report_rel(dev, REL_X,     data[1+1]);
+		input_report_rel(dev, REL_Y,     data[1+2]);
+	} else {
+		input_report_rel(dev, REL_HWHEEL, data[1+1]);
+		input_report_rel(dev, REL_WHEEL, -data[1+2]);
+	}
 
 	input_sync(dev);
 resubmit:
@@ -164,7 +174,7 @@ static int usb_mouse_probe(struct usb_interface *intf, const struct usb_device_i
 
 	if (!strlen(mouse->name))
 		snprintf(mouse->name, sizeof(mouse->name),
-			 "USB HIDBP Mouse %04x:%04x",
+			 "USB HIDBP Logitech TrackMan Marble FX Mouse @xkr47 %04x:%04x",
 			 le16_to_cpu(dev->descriptor.idVendor),
 			 le16_to_cpu(dev->descriptor.idProduct));
 
@@ -180,9 +190,7 @@ static int usb_mouse_probe(struct usb_interface *intf, const struct usb_device_i
 	input_dev->keybit[BIT_WORD(BTN_MOUSE)] = BIT_MASK(BTN_LEFT) |
 		BIT_MASK(BTN_RIGHT) | BIT_MASK(BTN_MIDDLE);
 	input_dev->relbit[0] = BIT_MASK(REL_X) | BIT_MASK(REL_Y);
-	input_dev->keybit[BIT_WORD(BTN_MOUSE)] |= BIT_MASK(BTN_SIDE) |
-		BIT_MASK(BTN_EXTRA);
-	input_dev->relbit[0] |= BIT_MASK(REL_WHEEL);
+	input_dev->relbit[0] |= BIT_MASK(REL_WHEEL) | BIT_MASK(REL_HWHEEL);
 
 	input_set_drvdata(input_dev, mouse);
 
@@ -235,7 +243,7 @@ static struct usb_device_id usb_mouse_id_table [] = {
 MODULE_DEVICE_TABLE (usb, usb_mouse_id_table);
 
 static struct usb_driver usb_mouse_driver = {
-	.name		= "usbmouse",
+	.name		= "marblefx",
 	.probe		= usb_mouse_probe,
 	.disconnect	= usb_mouse_disconnect,
 	.id_table	= usb_mouse_id_table,

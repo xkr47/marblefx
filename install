@@ -1,0 +1,67 @@
+#!/bin/bash
+
+set -e
+
+if [ $(id -u) != 0 ]; then
+    echo run as root
+    exit 1
+fi
+
+QUIRK_VAL="0x4d9:0x1400:0x4"
+QUIRK_PARAM="usbhid.quirks=$QUIRK_VAL"
+
+if ! fgrep -q " $QUIRK_PARAM" /proc/cmdline ; then
+    if [ -e /etc/default/grub ]; then
+	if ! fgrep -q " $QUIRK_PARAM" /etc/default/grub ; then
+	    # Install
+	    echo "Setup kernel cmdline to not use usbhid module for our mouse.."
+	    if ! perl -i.usbmouse-bak -e '
+    while(<>) {
+      if (/^(GRUB_CMDLINE_LINUX_DEFAULT=".*)("\s*$)/) {
+        my ($x,$y)=($1,$2);
+        $found=1;
+        if ($x !~ m!usbhid.quirks!) {
+          $_ = $x." '"$QUIRK_PARAM"'".$y;
+        }
+      }
+      print;
+    }
+    exit(1) unless($found);
+  ' /etc/default/grub ; then
+		echo "ERROR: Failed to patch kernel cmdline!"
+		exit 1
+	    fi
+	fi
+    else
+	echo "ERROR: Update this script to support patching wherever the kernel command line arguments should go"
+	exit 1
+    fi
+fi
+
+if [ -e /sys/module/usbhid ]; then
+    # reload usbhid module if necessary so we don't need to reboot
+    if ! fgrep -q "$QUIRK_VAL" /sys/module/usbhid/parameters/quirks ; then
+	echo "Reload usbhid module to tell it not to attach our mouse.."
+	modprobe -r usbhid
+	modprobe usbhid quirks=0x4d9:0x1400:0x4
+    fi
+fi
+
+# unload old if any
+[ ! -e /sys/module/marblefx ] || rmmod marblefx
+
+echo "Installing our driver.."
+insmod marblefx.ko
+dmesg | tail | egrep -B 1 'registered new interface driver marblefx' | tail -n 2 | egrep 'registered new|TrackMan'
+
+echo "Tweaking scrolling distance.."
+for i in `seq 10` ; do
+    device=$(xinput list --id-only "USB HIDBP Logitech TrackMan Marble FX Mouse @xkr47 04d9:1400" 2>/dev/null ||:)
+    [ ! "$device" ] || break
+    sleep 0.1
+done
+if [ ! "$device" ]; then
+    echo "Unable to find xinput device id, unable to tweak scrolling"
+    exit 2
+fi
+xinput set-prop $device "Evdev Scrolling Distance" 8 8 1
