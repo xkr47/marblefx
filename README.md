@@ -62,4 +62,4 @@ Issues & pull requests welcome. Also if you would have any (inside) information 
 
 # Technical details
 
-The full usb device descriptor of the PS/2 - usb adapter I use [descriptor.txt](./descriptor.txt). Obviously nly the second interface descriptor with "bInterfaceProtocol      2 Mouse" is interesting to us.
+The full usb device descriptor of the PS/2 - usb adapter I use [descriptor.txt](./descriptor.txt). Obviously only the [second interface descriptor](https://github.com/xkr47/marblefx/blob/master/descriptor.txt#L111) with "bInterfaceProtocol      2 Mouse" is interesting to us.
