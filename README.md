@@ -59,3 +59,7 @@ Mouse buttons work normally while scrolling, although they usually don't have mu
 # Improvements
 
 Issues & pull requests welcome. Also if you would have any (inside) information on the Logitech TrackMan Marble FX protocol or quirks please let me know!
+
+# Technical details
+
+The full usb device descriptor of the PS/2 - usb adapter I use [descriptor.txt](./descriptor.txt). Obviously nly the second interface descriptor with "bInterfaceProtocol      2 Mouse" is interesting to us.
