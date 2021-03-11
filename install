@@ -11,9 +11,13 @@ QUIRK_VAL="0x4d9:0x1400:0x4"
 QUIRK_PARAM="usbhid.quirks=$QUIRK_VAL"
 
 if ! fgrep -q " $QUIRK_PARAM" /proc/cmdline ; then
+    # checks which config file is present to figure out what bootloader is used
+    # then stores the file's location and where to add kernel command line parameters in it
+    # GRUB
     if [ -e /etc/default/grub ]; then
         CONFIG_LOC="/etc/default/grub"
         OPTIONS_LINE='/^(GRUB_CMDLINE_LINUX_DEFAULT=".*)("\s*$)/'
+    # systemd-boot
     elif [ -e /boot/loader/entries/arch.conf ]; then
         CONFIG_LOC="/boot/loader/entries/arch.conf"
         OPTIONS_LINE='/^(options.*)(\s*$)/'
