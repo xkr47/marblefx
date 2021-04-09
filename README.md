@@ -23,6 +23,8 @@ Then I just made some logic to send scroll events instead of mouse movement even
 
 # Installation
 
+Make sure you have what is needed to compile kernel modules (packages like linux-headers) and optionally the `xinput` binary from e.g. the xorg-x11-server-utils package.
+
 Run
 
 ```sh
