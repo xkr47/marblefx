@@ -52,8 +52,12 @@ if [ -e /sys/module/usbhid ]; then
     # reload usbhid module if necessary so we don't need to reboot
     if ! fgrep -q "$QUIRK_VAL" /sys/module/usbhid/parameters/quirks ; then
 	echo "Reload usbhid module to tell it not to attach our mouse.."
-	modprobe -r usbhid
-	modprobe usbhid quirks=0x4d9:0x1400:0x4
+	if modprobe -r usbhid ; then
+	    modprobe usbhid quirks=0x4d9:0x1400:0x4
+	else
+	    echo "- ERROR: Unable to reload module usbhid - you need to reboot for things to take effect"
+	    exit 3
+	fi
     fi
 fi
 
