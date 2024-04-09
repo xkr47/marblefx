@@ -10,7 +10,7 @@ fi
 QUIRK_VAL="0x4d9:0x1400:0x4"
 QUIRK_PARAM="usbhid.quirks=$QUIRK_VAL"
 
-if ! fgrep -q " $QUIRK_PARAM" /proc/cmdline ; then
+if ! grep -Fq " $QUIRK_PARAM" /proc/cmdline ; then
     # checks which config file is present to figure out what bootloader is used
     # then stores the file's location and where to add kernel command line parameters in it
     # GRUB
@@ -26,7 +26,7 @@ if ! fgrep -q " $QUIRK_PARAM" /proc/cmdline ; then
         exit 1
     fi
 
-    if ! fgrep -q " $QUIRK_PARAM" $CONFIG_LOC ; then
+    if ! grep -Fq " $QUIRK_PARAM" $CONFIG_LOC ; then
     # Install
     echo "Setup kernel cmdline to not use usbhid module for our mouse.."
         if ! perl -i.usbmouse-bak -e '
@@ -50,7 +50,7 @@ fi
 
 if [ -e /sys/module/usbhid ]; then
     # reload usbhid module if necessary so we don't need to reboot
-    if ! fgrep -q "$QUIRK_VAL" /sys/module/usbhid/parameters/quirks ; then
+    if ! grep -Fq "$QUIRK_VAL" /sys/module/usbhid/parameters/quirks ; then
 	echo "Reload usbhid module to tell it not to attach our mouse.."
 	if modprobe -r usbhid ; then
 	    modprobe usbhid quirks=0x4d9:0x1400:0x4
@@ -66,7 +66,7 @@ fi
 
 echo "Installing our driver.."
 insmod marblefx.ko
-dmesg | tail | egrep -B 1 'registered new interface driver marblefx' | tail -n 2 | egrep 'registered new|TrackMan'
+dmesg | tail | grep -EB 1 'registered new interface driver marblefx' | tail -n 2 | grep -E 'registered new|TrackMan'
 
 echo "Tweaking scrolling distance.."
 for i in `seq 10` ; do
